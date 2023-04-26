@@ -1,0 +1,100 @@
+---
+title: "Homework 10"
+author: "Brandon Simelgor"
+date: "2023-04-20"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+Brandon Simelgor
+https://github.com/Simelgor05/Homework-10.git
+
+```{r}
+vehicle <- read.csv("https://raw.githubusercontent.com/yumouqiu/DS202-Spring2023/main/Practice/data/fars2016/vehicle.csv")
+accident <- read.csv("https://raw.githubusercontent.com/yumouqiu/DS202-Spring2023/main/Practice/data/fars2016/accident.csv")
+person <- read.csv("https://raw.githubusercontent.com/yumouqiu/DS202-Spring2023/main/Practice/data/fars2016/person.csv")
+```
+
+
+Part one: Accident data
+are there some days of the week where more accidents happen than on others (use variable DAY_WEEK)?
+```{r}
+library(tidyverse)
+head(accident)
+accidentday <- accident %>%
+  group_by(DAY_WEEK) %>%
+  summarize(total_accidents = n())
+
+ggplot(accidentday, aes(x = DAY_WEEK, y = total_accidents)) +
+  geom_bar(stat = "identity") +
+  xlab("Day") +
+  ylab("Accidents") +
+  ggtitle("Accidents by Day of the Week")
+```
+
+The days of the week where accidents happened more often were days 1, 6, and 7.
+
+what time of the day do accidents happen (use variable HOUR)?
+```{r}
+accidentshour <- accident %>%
+  filter(HOUR != 99) %>%
+  group_by(HOUR) %>%
+  summarize(total_accidents = n())
+
+ggplot(accidentshour, aes(x = HOUR, y = total_accidents)) +
+  geom_bar(stat = "identity") +
+  xlab("Hour") +
+  ylab("Accidents") +
+  ggtitle("Accidents by Hour of the Day")
+```
+
+Accidents occured during every hour of the day but most frequently in th evening between the 15th and 24th hours of the day.
+
+what is the number of accidents with at least one drunk driver (use variable DRUNK_DR)?
+```{r}
+accidentsdrunkdriver <- accident %>%
+  filter(DRUNK_DR > 0) %>%
+  nrow()
+
+accidentsdrunkdriver
+
+```
+There are 8720 accidents with at least one drunk driver.
+
+
+Part two: Connecting data
+Connect to the person table. Identify drivers (PER_TYP == 1, see fars manual ) and subset on them.
+```{r}
+head(person)
+head(person) %>% filter(PER_TYP ==1)
+```
+
+Join accident and driver table (work out which variable(s) to use)
+```{r}
+head(vehicle)
+accidentvehicle <- left_join(accident, vehicle, by = "ST_CASE")
+```
+
+Tally the number of accidents by day of the week (DAY_WEEK), hour of the day (HOUR) and gender (SEX). Visualize the results!
+```{r}
+accidentsdayhourgender <- person %>%
+  filter(HOUR != 99) %>%
+  filter(SEX != 8) %>%
+  filter(SEX != 9) %>%
+  left_join(accidentvehicle, by = "ST_CASE") %>% 
+  group_by(DAY_WEEK, HOUR, SEX) %>% 
+  summarize(num_accidents = n())
+
+accidentsdayhourgender
+
+ggplot(accidentsdayhourgender, aes(x = HOUR, y = num_accidents, fill = DAY_WEEK)) +
+  facet_wrap(~SEX)+
+  geom_bar(stat = "identity", position = "stack") +
+  xlab("Hour") +
+  ylab("Accidents") +
+  ggtitle("Accidents by Day of the Week, Hour of the Day, and Gender")
+```
+
